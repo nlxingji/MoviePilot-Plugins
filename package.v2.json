@@ -1,0 +1,39 @@
+{
+  "variety": {
+    "name": "综艺刮削",
+    "description": "识别综艺种子文件，智能刮削",
+    "labels": "刮削",
+    "version": "0.1",
+    "icon": "LexiAnnot.png",
+    "author": "nlxingji",
+    "level": 1,
+    "history": {
+      "v1.0": "init version"
+    }
+  },
+  "cleanlogs": {
+    "name": "插件日志清理",
+    "description": "定时清理插件产生的日志",
+    "labels": "插件",
+    "version": "1.2.3",
+    "icon": "clean.png",
+    "author": "nlxingji",
+    "level": 1,
+    "history": {
+      "v1.0": "init version"
+    }},
+
+    "autoskip": {
+    "name": "自适应IntroSkip",
+    "description": "自适应生成IntroSkip片头片尾标记，Emby跳片头、片尾",
+    "labels": "刮削",
+    "version": "1.7.7",
+    "icon": "https://raw.githubusercontent.com/honue/MoviePilot-Plugins/main/icons/chapter.png",
+    "author": "nlxingji",
+    "level": 1,
+    "history": {
+      "v1.0": "init version"
+    }
+  }
+
+}
