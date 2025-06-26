@@ -14,7 +14,7 @@ lock = threading.Lock()
 threading_event = threading.Event()
 
 
-class AdaptiveIntroSkip(_PluginBase):
+class Ad(_PluginBase):
     # 插件名称
     plugin_name = "自适应IntroSkip"
     # 插件描述
