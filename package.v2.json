@@ -27,7 +27,7 @@
     "name": "自适应IntroSkip魔改版",
     "description": "自适应生成IntroSkip片头片尾标记，Emby跳片头、片尾",
     "labels": "刮削",
-    "version": "1.7.9",
+    "version": "1.0.0", 
     "icon": "https://raw.githubusercontent.com/honue/MoviePilot-Plugins/main/icons/chapter.png",
     "author": "nlxingji",
     "level": 1,
