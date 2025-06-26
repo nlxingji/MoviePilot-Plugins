@@ -23,7 +23,7 @@
       "v1.0": "init version"
     }},
 
-    "adaptiveintroskip": {
+    "AdaptiveIntroSkip": {
     "name": "自适应IntroSkip魔改版",
     "description": "自适应生成IntroSkip片头片尾标记，Emby跳片头、片尾",
     "labels": "刮削",
