@@ -30,6 +30,7 @@ from app.schemas import NotificationType, TransferInfo
 from app.schemas.types import EventType, MediaType, SystemConfigKey
 from app.utils.string import StringUtils
 from app.utils.system import SystemUtils
+from schemas import FileItem
 
 lock = threading.Lock()
 
@@ -53,21 +54,21 @@ class FileMonitorHandler(FileSystemEventHandler):
                                 mon_path=self._watch_path, event_path=event.dest_path)
 
 
-class CloudLinkMonitor(_PluginBase):
+class PathMonitor(_PluginBase):
     # 插件名称
-    plugin_name = "云盘实时监控"
+    plugin_name = "目录实时监控"
     # 插件描述
     plugin_desc = "监控云盘目录文件变化，自动转移链接。"
     # 插件图标
     plugin_icon = "Linkease_A.png"
     # 插件版本
-    plugin_version = "2.4.7"
+    plugin_version = "1.0"
     # 插件作者
-    plugin_author = "thsrite"
+    plugin_author = "nlxingji"
     # 作者主页
-    author_url = "https://github.com/thsrite"
+    author_url = "https://github.com/nlxingji"
     # 插件配置项ID前缀
-    plugin_config_prefix = "cloudlinkmonitor_"
+    plugin_config_prefix = "pathmonitor_"
     # 加载顺序
     plugin_order = 4
     # 可使用的用户级别
@@ -392,6 +393,9 @@ class CloudLinkMonitor(_PluginBase):
                 transfer_type = self._transferconf.get(mon_path)
                 category = self._categoryconf.get(mon_path)
 
+
+
+
                 # 识别媒体信息
                 mediainfo: MediaInfo = self.chain.recognize_media(meta=file_meta)
                 if not mediainfo:
@@ -409,6 +413,10 @@ class CloudLinkMonitor(_PluginBase):
                                   f"回复：```\n/redo {his.id} [tmdbid]|[类型]\n``` 手动识别转移。"
                         )
                     return
+
+                fileitem = FileItem(path = file_path.name)
+                self.transferchian.transfer(fileitem,file_meta,mediainfo)
+                return
 
                 # 如果未开启新增已入库媒体是否跟随TMDB信息变化则根据tmdbid查询之前的title
                 if not settings.SCRAP_FOLLOW_TMDB:

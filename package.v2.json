@@ -24,8 +24,7 @@
     "history": {
       "v1.0": "init version"
     }},
-
-    "ad": {
+  "ad": {
     "name": "自适应IntroSkip",
     "description": "自适应生成IntroSkip片头片尾标记，Emby跳片头、片尾",
     "labels": "刮削",
@@ -57,5 +56,18 @@
       "v1.1": "修正流行度校验",
       "v1.0": "自动添加热门媒体到订阅"
     }
+  },
+  "pathmonitor": {
+    "name": "目录实时监控",
+    "description": "目录实时监控(作为系统监控补充，防止遗漏)",
+    "labels": "订阅",
+    "version": "1.0",
+    "icon": "actor.png",
+    "author": "nlxingji",
+    "level": 1,
+    "v2": true,
+    "history": {
+      "v1.0": "init"
   }
-}
+}}
+
