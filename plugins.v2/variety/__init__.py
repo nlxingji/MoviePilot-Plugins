@@ -42,7 +42,7 @@ class Variety(_PluginBase):
     # 插件描述
     plugin_desc = "综艺文件智能刮削"
     # 插件图标
-    plugin_icon = "host.png"
+    plugin_icon = "actor.png"
     # 插件版本
     plugin_version = "1.0.0"
     # 插件作者
