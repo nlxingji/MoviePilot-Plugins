@@ -95,7 +95,7 @@ class PathMonitor(_PluginBase):
     # 模式 compatibility/fast
     _mode = "compatibility"
     # 转移方式
-    _transfer_type = settings.TRANSFER_TYPE
+    _transfer_type = "link"
     _monitor_dirs = ""
     _exclude_keywords = ""
     _interval: int = 10
