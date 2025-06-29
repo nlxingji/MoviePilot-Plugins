@@ -1,5 +1,5 @@
 from typing import Any, List, Dict, Tuple
-from xml.etree.ElementTree import Element, SubElement, tostring
+from xml.etree.ElementTree import Element, SubElement, tostring, parse
 import xml.dom.minidom as minidom
 import os
 
@@ -334,9 +334,10 @@ class Variety(_PluginBase):
 
     def write_or_update_nfo(self, nfo_path, tmdbid, title, aired, season, episode):
         uniqueid = tmdbid + 2369150  # 自定义 ID
-
+        time.sleep(10)
         # 如果文件存在，尝试读取并更新
         if os.path.exists(nfo_path):
+            logger.info(f"已存在 NFO 文件：{nfo_path}，尝试更新...")
             try:
                 tree = parse(nfo_path)
                 root = tree.getroot()
@@ -380,6 +381,7 @@ class Variety(_PluginBase):
                 print(f"更新失败，尝试重建：{nfo_path}，原因：{e}")
 
         # 不存在或更新失败则创建
+        logger.info(f"不存在 NFO 文件：{nfo_path}，尝试创建...")
         root = Element("episodedetails")
 
         SubElement(root, "uniqueid", {
@@ -462,7 +464,7 @@ class Variety(_PluginBase):
             # 再分割成列表
             title_parts = raw_title.split("|")
             for item in transferHistory:
-                title = f"第{item.episodes.replace("E","")}集.{title_parts[-1]}"
+                title = f"第{item.episodes.replace('E','')}集.{title_parts[-1]}"
                 path = item.dest.replace("mkv", "nfo").replace("mp4", "nfo")
                 try:
                     self.write_or_update_nfo(
