@@ -60,8 +60,8 @@
   "pathmonitor": {
     "name": "目录实时监控",
     "description": "目录实时监控(作为系统监控补充，防止遗漏)",
-    "labels": "订阅",
-    "version": "1.0",
+    "labels": "监控",
+    "version": "2.0.0",
     "icon": "actor.png",
     "author": "nlxingji",
     "level": 1,
