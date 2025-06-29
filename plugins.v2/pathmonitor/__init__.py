@@ -1072,7 +1072,7 @@ class PathMonitor(_PluginBase):
             "auto_category": False,
             "softlink": False,
             "mode": "fast",
-            "transfer_type": settings.TRANSFER_TYPE,
+            "transfer_type": "link",
             "monitor_dirs": "",
             "exclude_keywords": "",
             "interval": 10,
