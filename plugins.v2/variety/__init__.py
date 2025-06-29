@@ -38,7 +38,7 @@ handler = EventHandler()
 
 class Variety(_PluginBase):
     # 插件名称
-    plugin_name = "综艺"
+    plugin_name = "综艺刮削"
     # 插件描述
     plugin_desc = "综艺文件智能刮削"
     # 插件图标
