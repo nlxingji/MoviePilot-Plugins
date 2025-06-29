@@ -3,7 +3,7 @@
     "name": "综艺刮削",
     "description": "识别综艺种子文件，智能刮削",
     "labels": "刮削",
-    "version": "0.9.0",
+    "version": "1.0.0",
     "v2": true,
     "icon": "host.png",
     "author": "nlxingji",
@@ -38,9 +38,9 @@
       "v1.0": "init version"
     }
   },
-  "popularsubscribe": {
+  "hotsubscribe": {
     "name": "热门媒体订阅",
-    "description": "自动添加热门电影、电视剧、动漫到订阅。",
+    "description": "自动添加热门电影、电视剧、动漫到订阅。（支持二级分类）",
     "labels": "订阅",
     "version": "1.8",
     "icon": "https://raw.githubusercontent.com/thsrite/MoviePilot-Plugins/main/icons/popular.png",

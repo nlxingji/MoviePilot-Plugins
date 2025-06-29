@@ -19,11 +19,11 @@ from apscheduler.triggers.cron import CronTrigger
 from app.modules.themoviedb.tmdbapi import TmdbApi
 
 
-class PopularSubscribe(_PluginBase):
+class HotSubscribe(_PluginBase):
     # 插件名称
     plugin_name = "热门媒体订阅"
     # 插件描述
-    plugin_desc = "自动添加热门电影、电视剧、动漫到订阅。"
+    plugin_desc = "自动添加热门电影、电视剧、动漫到订阅。（支持二级分类）"
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/thsrite/MoviePilot-Plugins/main/icons/popular.png"
     # 插件版本
@@ -33,7 +33,7 @@ class PopularSubscribe(_PluginBase):
     # 作者主页
     author_url = "https://github.com/nlxingji"
     # 插件配置项ID前缀
-    plugin_config_prefix = "popularsubscribe_"
+    plugin_config_prefix = "hotsubscribe_"
     # 加载顺序
     plugin_order = 25
     # 可使用的用户级别

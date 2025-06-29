@@ -42,9 +42,9 @@ class Variety(_PluginBase):
     # 插件描述
     plugin_desc = "综艺文件智能刮削"
     # 插件图标
-    plugin_icon = "Chatgpt_A.png"
+    plugin_icon = "host.png"
     # 插件版本
-    plugin_version = "0.9.0"
+    plugin_version = "1.0.0"
     # 插件作者
     plugin_author = "nlxingji"
     # 作者主页
