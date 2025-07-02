@@ -58,7 +58,7 @@ class PathMonitor(_PluginBase):
     # 插件图标
     plugin_icon = "Linkease_A.png"
     # 插件版本
-    plugin_version = "2.0.0"
+    plugin_version = "3.0.0"
     # 插件作者
     plugin_author = "nlxingji"
     # 作者主页
@@ -307,8 +307,8 @@ class PathMonitor(_PluginBase):
         if not event.is_directory:
             # 文件发生变化
             logger.info("文件%s：%s" % (text, event_path))
-            logger.info(f"{event_path} 延时10s,等系统处理")
-            time.sleep(60)
+            logger.info(f"{event_path} 延时{self._interval}s,等系统处理")
+            time.sleep(self._interval)
             self.__handle_file(event_path=event_path)
 
     def __handle_file(self, event_path: str):
