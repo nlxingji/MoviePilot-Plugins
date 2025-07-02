@@ -292,7 +292,7 @@ class PathMonitor(_PluginBase):
             logger.info(f"监控目录 {mon_path} 共发现 {len(list_files)} 个文件")
             # 遍历目录下所有文件
             for file_path in list_files:
-                logger.info(f"开始处理文件 {file_path} ...")
+                logger.info(f"开始处理文件 {file_path.name} ...")
                 self.__handle_file(event_path=str(file_path))
         logger.info("全量同步云盘实时监控目录完成！")
 
@@ -324,7 +324,7 @@ class PathMonitor(_PluginBase):
             with lock:
                 transfer_history = self.transferhis.get_by_src(event_path)
                 if transfer_history:
-                    logger.info("文件已处理过：%s" % event_path)
+                    logger.info("文件已处理过：%s" % file_path.name)
                     return
 
                 # 回收站及隐藏的文件不处理
