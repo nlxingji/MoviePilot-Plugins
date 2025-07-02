@@ -17,17 +17,16 @@ from app import schemas
 from app.chain.tmdb import TmdbChain
 from app.chain.transfer import TransferChain
 from app.core.config import settings
-from app.core.context import MediaInfo
 from app.core.event import eventmanager, Event
-from app.core.metainfo import MetaInfoPath
 from app.db.downloadhistory_oper import DownloadHistoryOper
 from app.db.transferhistory_oper import TransferHistoryOper
 from app.log import logger
 from app.plugins import _PluginBase
-from app.schemas import NotificationType, TransferInfo, FileItem
-from app.schemas.types import EventType, MediaType, SystemConfigKey
-from app.utils.string import StringUtils
+from app.schemas import FileItem
+from app.schemas.types import EventType, SystemConfigKey
 from app.utils.system import SystemUtils
+from app.modules.filemanager import TransHandler
+
 
 lock = threading.Lock()
 
@@ -108,6 +107,7 @@ class PathMonitor(_PluginBase):
         self.transferhis = TransferHistoryOper()
         self.downloadhis = DownloadHistoryOper()
         self.transferchian = TransferChain()
+        self.filetransfer = TransHandler()
         self.tmdbchain = TmdbChain()
         # 清空配置
         self._dirconf = {}
@@ -139,9 +139,6 @@ class PathMonitor(_PluginBase):
         if self._enabled or self._onlyonce:
             # 定时服务管理器
             self._scheduler = BackgroundScheduler(timezone=settings.TZ)
-            if self._notify:
-                # 追加入库消息统一发送服务
-                self._scheduler.add_job(self.send_msg, trigger='interval', seconds=15)
 
 
             # 读取目录配置
@@ -296,7 +293,7 @@ class PathMonitor(_PluginBase):
             # 遍历目录下所有文件
             for file_path in list_files:
                 logger.info(f"开始处理文件 {file_path} ...")
-                self.__handle_file(event_path=str(file_path), mon_path=mon_path)
+                self.__handle_file(event_path=str(file_path))
         logger.info("全量同步云盘实时监控目录完成！")
 
     def event_handler(self, event, mon_path: str, text: str, event_path: str):
@@ -309,18 +306,17 @@ class PathMonitor(_PluginBase):
         """
         if not event.is_directory:
             # 文件发生变化
-            logger.debug("文件%s：%s" % (text, event_path))
-            self.__handle_file(event_path=event_path, mon_path=mon_path)
+            logger.info("文件%s：%s" % (text, event_path))
+            logger.info(f"{event_path} 延时10s,等系统处理")
+            time.sleep(60)
+            self.__handle_file(event_path=event_path)
 
-    def __handle_file(self, event_path: str, mon_path: str):
+    def __handle_file(self, event_path: str):
         """
         同步一个文件
         :param event_path: 事件文件路径
-        :param mon_path: 监控目录
         """
         file_path = Path(event_path)
-        logger.info("入库休眠等系统处理：%s" % event_path)
-        time.sleep(60)
         try:
             if not file_path.exists():
                 return
@@ -372,105 +368,22 @@ class PathMonitor(_PluginBase):
                         logger.info(f"{file_path} 已整理过")
                         return
 
-
-
-                # 元数据
-                file_meta = MetaInfoPath(file_path)
-                if not file_meta.name:
-                    logger.error(f"{file_path.name} 无法识别有效信息")
-                    return
-
-                # 判断文件大小
-                if self._size and float(self._size) > 0 and file_path.stat().st_size < float(self._size) * 1024 ** 3:
-                    logger.info(f"{file_path} 文件大小小于监控文件大小，不处理")
-                    return
-
-                # 识别媒体信息
-                mediainfo: MediaInfo = self.chain.recognize_media(meta=file_meta)
-                if not mediainfo:
-                    logger.warn(f'未识别到媒体信息，标题：{file_meta.name}')
-                    # 新增转移成功历史记录
-                    his = self.transferhis.add_fail(
-                        src_path=file_path,
-                        mode="link",
-                        meta=file_meta
+                self.transferchian.do_transfer(
+                    fileitem=FileItem(
+                        storage="local",
+                        path=str(event_path).replace("\\", "/"),
+                        type="file",
+                        name=file_path.name,
+                        basename=file_path.stem,
+                        extension=file_path.suffix[1:],
+                        size=file_path.stat().st_size
                     )
-                    if self._notify:
-                        self.post_message(
-                            mtype=NotificationType.Manual,
-                            title=f"{file_path.name} 未识别到媒体信息，无法入库！\n"
-                                  f"回复：```\n/redo {his.id} [tmdbid]|[类型]\n``` 手动识别转移。"
-                        )
-                    return
+                )
 
-                fileitem = FileItem(path = file_path.name)
-                self.transferchian.transfer(fileitem,file_meta,mediainfo)
         except Exception as e:
             logger.error("目录监控发生错误：%s - %s" % (str(e), traceback.format_exc()))
 
-    def send_msg(self):
-        """
-        定时检查是否有媒体处理完，发送统一消息
-        """
-        if not self._medias or not self._medias.keys():
-            return
 
-        # 遍历检查是否已刮削完，发送消息
-        for medis_title_year_season in list(self._medias.keys()):
-            media_list = self._medias.get(medis_title_year_season)
-            logger.info(f"开始处理媒体 {medis_title_year_season} 消息")
-
-            if not media_list:
-                continue
-
-            # 获取最后更新时间
-            last_update_time = media_list.get("time")
-            media_files = media_list.get("files")
-            if not last_update_time or not media_files:
-                continue
-
-            transferinfo = media_files[0].get("transferinfo")
-            file_meta = media_files[0].get("file_meta")
-            mediainfo = media_files[0].get("mediainfo")
-            # 判断剧集最后更新时间距现在是已超过10秒或者电影，发送消息
-            if (datetime.datetime.now() - last_update_time).total_seconds() > int(self._interval) \
-                    or mediainfo.type == MediaType.MOVIE:
-                # 发送通知
-                if self._notify:
-
-                    # 汇总处理文件总大小
-                    total_size = 0
-                    file_count = 0
-
-                    # 剧集汇总
-                    episodes = []
-                    for file in media_files:
-                        transferinfo = file.get("transferinfo")
-                        total_size += transferinfo.total_size
-                        file_count += 1
-
-                        file_meta = file.get("file_meta")
-                        if file_meta and file_meta.begin_episode:
-                            episodes.append(file_meta.begin_episode)
-
-                    transferinfo.total_size = total_size
-                    # 汇总处理文件数量
-                    transferinfo.file_count = file_count
-
-                    # 剧集季集信息 S01 E01-E04 || S01 E01、E02、E04
-                    season_episode = None
-                    # 处理文件多，说明是剧集，显示季入库消息
-                    if mediainfo.type == MediaType.TV:
-                        # 季集文本
-                        season_episode = f"{file_meta.season} {StringUtils.format_ep(episodes)}"
-                    # 发送消息
-                    self.transferchian.send_transfer_message(meta=file_meta,
-                                                             mediainfo=mediainfo,
-                                                             transferinfo=transferinfo,
-                                                             season_episode=season_episode)
-                # 发送完消息，移出key
-                del self._medias[medis_title_year_season]
-                continue
 
     def get_state(self) -> bool:
         return self._enabled
