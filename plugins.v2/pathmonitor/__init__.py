@@ -4,50 +4,22 @@ import threading
 import traceback
 from pathlib import Path
 from typing import List, Tuple, Dict, Any, Optional
-import time
-
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
-from watchdog.observers.polling import PollingObserver
-
 from app import schemas
-from app.chain.tmdb import TmdbChain
 from app.chain.transfer import TransferChain
 from app.core.config import settings
 from app.core.event import eventmanager, Event
-from app.db.downloadhistory_oper import DownloadHistoryOper
 from app.db.transferhistory_oper import TransferHistoryOper
 from app.log import logger
 from app.plugins import _PluginBase
 from app.schemas import FileItem
 from app.schemas.types import EventType, SystemConfigKey
 from app.utils.system import SystemUtils
-from app.modules.filemanager import TransHandler
-
 
 lock = threading.Lock()
 
-
-class FileMonitorHandler(FileSystemEventHandler):
-    """
-    目录监控响应类
-    """
-
-    def __init__(self, monpath: str, sync: Any, **kwargs):
-        super(FileMonitorHandler, self).__init__(**kwargs)
-        self._watch_path = monpath
-        self.sync = sync
-
-    def on_created(self, event):
-        self.sync.event_handler(event=event, text="创建",
-                                mon_path=self._watch_path, event_path=event.src_path)
-
-    def on_moved(self, event):
-        self.sync.event_handler(event=event, text="移动",
-                                mon_path=self._watch_path, event_path=event.dest_path)
 
 
 class PathMonitor(_PluginBase):
@@ -105,14 +77,12 @@ class PathMonitor(_PluginBase):
 
     def init_plugin(self, config: dict = None):
         self.transferhis = TransferHistoryOper()
-        self.downloadhis = DownloadHistoryOper()
         self.transferchian = TransferChain()
-        self.filetransfer = TransHandler()
-        self.tmdbchain = TmdbChain()
         # 清空配置
         self._dirconf = {}
         self._transferconf = {}
         self._categoryconf = {}
+
 
         # 读取配置
         if config:
@@ -128,7 +98,7 @@ class PathMonitor(_PluginBase):
             self._monitor_dirs = config.get("monitor_dirs") or ""
             self._exclude_keywords = config.get("exclude_keywords") or ""
             self._interval = config.get("interval") or 10
-            self._cron = config.get("cron")
+            self._cron = "1 1 * * * "
             self._size = config.get("size") or 0
             self._auto_category = config.get("auto_category")
             self._softlink = config.get("softlink")
@@ -139,7 +109,6 @@ class PathMonitor(_PluginBase):
         if self._enabled or self._onlyonce:
             # 定时服务管理器
             self._scheduler = BackgroundScheduler(timezone=settings.TZ)
-
 
             # 读取目录配置
             monitor_dirs = self._monitor_dirs.split("\n")
@@ -187,41 +156,7 @@ class PathMonitor(_PluginBase):
 
                 # 启用目录监控
                 if self._enabled:
-                    # 检查媒体库目录是不是下载目录的子目录
-                    try:
-                        if target_path and target_path.is_relative_to(Path(mon_path)):
-                            logger.warn(f"{target_path} 是监控目录 {mon_path} 的子目录，无法监控")
-                            self.systemmessage.put(f"{target_path} 是下载目录 {mon_path} 的子目录，无法监控")
-                            continue
-                    except Exception as e:
-                        logger.debug(str(e))
-                        pass
-
-                    try:
-                        if self._mode == "compatibility":
-                            # 兼容模式，目录同步性能降低且NAS不能休眠，但可以兼容挂载的远程共享目录如SMB
-                            observer = PollingObserver(timeout=10)
-                        else:
-                            # 内部处理系统操作类型选择最优解
-                            observer = Observer(timeout=10)
-                        self._observer.append(observer)
-                        observer.schedule(FileMonitorHandler(mon_path, self), path=mon_path, recursive=True)
-                        observer.daemon = True
-                        observer.start()
-                        logger.info(f"{mon_path} 的云盘实时监控服务启动")
-                    except Exception as e:
-                        err_msg = str(e)
-                        if "inotify" in err_msg and "reached" in err_msg:
-                            logger.warn(
-                                f"云盘实时监控服务启动出现异常：{err_msg}，请在宿主机上（不是docker容器内）执行以下命令并重启："
-                                + """
-                                     echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
-                                     echo fs.inotify.max_user_instances=524288 | sudo tee -a /etc/sysctl.conf
-                                     sudo sysctl -p
-                                     """)
-                        else:
-                            logger.error(f"{mon_path} 启动目云盘实时监控失败：{err_msg}")
-                        self.systemmessage.put(f"{mon_path} 启动云盘实时监控失败：{err_msg}")
+                    logger.info("实时监控服务启动")
 
             # 运行一次定时服务
             if self._onlyonce:
@@ -296,20 +231,30 @@ class PathMonitor(_PluginBase):
                 self.__handle_file(event_path=str(file_path))
         logger.info("全量同步云盘实时监控目录完成！")
 
-    def event_handler(self, event, mon_path: str, text: str, event_path: str):
-        """
-        处理文件变化
-        :param event: 事件
-        :param mon_path: 监控目录
-        :param text: 事件描述
-        :param event_path: 事件文件路径
-        """
-        if not event.is_directory:
-            # 文件发生变化
-            logger.info("文件%s：%s" % (text, event_path))
-            logger.info(f"{event_path} 延时{self._interval}s,等系统处理")
-            time.sleep(self._interval)
-            self.__handle_file(event_path=event_path)
+
+    def sync_all_files(self):
+        logger.info("开始检测目录 ...")
+        # 遍历所有监控目录
+        for mon_path in self._dirconf.keys():
+            logger.info(f"开始处理监控目录 {mon_path} ...")
+            list_files = SystemUtils.list_files(Path(mon_path), settings.RMT_MEDIAEXT)
+            recent_file = [f for f in list_files if f.stat().st_mtime > (datetime.datetime.now() - datetime.timedelta(days=3)).timestamp()]
+            logger.info(f"监控目录 {mon_path} 最近3天有更新 {len(recent_file)} 个文件")
+            start = (datetime.datetime.now() - datetime.timedelta(days=4)).strftime("%Y-%m-%d %H:%M:%S")
+            transfer_history = self.transferhis.list_by_date(start)
+            transfer_history_list = [Path(item.src) for item in transfer_history]
+            new_file = [f for f in recent_file if f not in transfer_history_list]
+            logger.info(f"监控目录 {mon_path} 共发现未在转移历史中有 {len(new_file)} 个文件")
+            # 遍历目录下所有文件
+            for file_path in new_file:
+                logger.info(f"开始处理文件 {file_path.name} ...")
+                self._scheduler.add_job(id=f"watch_{file_path.name}", name="目录实时监控",
+                                        func=self.__handle_file, kwargs={"event_path": file_path.name}, trigger='date',
+                                        run_date=datetime.datetime.now(
+                                            tz=pytz.timezone(settings.TZ)) + datetime.timedelta(seconds=60)
+                                        )
+        logger.info("定时监控目录完成！")
+
 
     def __handle_file(self, event_path: str):
         """
@@ -426,13 +371,22 @@ class PathMonitor(_PluginBase):
         """
         if self._enabled and self._cron:
             return [{
-                "id": "CloudLinkMonitor",
-                "name": "云盘实时监控全量同步服务",
+                "id": "path_monitor_1",
+                "name": "实时监控全量同步服务",
                 "trigger": CronTrigger.from_crontab(self._cron),
                 "func": self.sync_all,
                 "kwargs": {}
-            }]
+            },
+                {
+                    "id": "path_monitor_2",
+                    "name": "定时监控文件同步服务",
+                    "trigger": CronTrigger.from_crontab("*/5 * * * *"),
+                    "func": self.sync_all_files,
+                    "kwargs": {}
+                }
+            ]
         return []
+
 
     def sync(self) -> schemas.Response:
         """
@@ -808,7 +762,7 @@ class PathMonitor(_PluginBase):
             "monitor_dirs": "",
             "exclude_keywords": "",
             "interval": 10,
-            "cron": "",
+            "cron": "1 1 * * *",
             "size": 0
         }
 
@@ -819,14 +773,6 @@ class PathMonitor(_PluginBase):
         """
         退出插件
         """
-        if self._observer:
-            for observer in self._observer:
-                try:
-                    observer.stop()
-                    observer.join()
-                except Exception as e:
-                    print(str(e))
-        self._observer = []
         if self._scheduler:
             self._scheduler.remove_all_jobs()
             if self._scheduler.running:
