@@ -61,7 +61,7 @@
     "name": "目录实时监控",
     "description": "目录实时监控(作为系统监控补充，防止遗漏)",
     "labels": "监控",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "icon": "actor.png",
     "author": "nlxingji",
     "level": 1,
