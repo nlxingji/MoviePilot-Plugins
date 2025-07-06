@@ -1,4 +1,5 @@
 import datetime
+import random
 import re
 import threading
 import traceback
@@ -236,23 +237,19 @@ class PathMonitor(_PluginBase):
         logger.info("开始检测目录 ...")
         # 遍历所有监控目录
         for mon_path in self._dirconf.keys():
-            logger.info(f"开始处理监控目录 {mon_path} ...")
+            logger.debug(f"开始处理监控目录 {mon_path} ...")
             list_files = SystemUtils.list_files(Path(mon_path), settings.RMT_MEDIAEXT)
             recent_file = [f for f in list_files if f.stat().st_mtime > (datetime.datetime.now() - datetime.timedelta(days=3)).timestamp()]
-            logger.info(f"监控目录 {mon_path} 最近3天有更新 {len(recent_file)} 个文件")
             start = (datetime.datetime.now() - datetime.timedelta(days=4)).strftime("%Y-%m-%d %H:%M:%S")
             transfer_history = self.transferhis.list_by_date(start)
             transfer_history_list = [Path(item.src) for item in transfer_history]
             new_file = [f for f in recent_file if f not in transfer_history_list]
-            logger.info(f"监控目录 {mon_path} 共发现未在转移历史中有 {len(new_file)} 个文件")
             # 遍历目录下所有文件
             for file_path in new_file:
-                logger.info(f"开始处理文件 {file_path.name} ...")
-                self._scheduler.add_job(id=f"watch_{file_path.name}", name="目录实时监控",
-                                        func=self.__handle_file, kwargs={"event_path": file_path.name}, trigger='date',
-                                        run_date=datetime.datetime.now(
-                                            tz=pytz.timezone(settings.TZ)) + datetime.timedelta(seconds=60)
-                                        )
+                logger.info(f"发现新文件 {file_path.resolve()} ...")
+                if file_path.stat().st_mtime < (datetime.datetime.now() - datetime.timedelta(minutes=1)).timestamp():
+                    logger.info(f"发现处理文件 {file_path.resolve()} ...")
+                    self.__handle_file(event_path=str(file_path.resolve()))
         logger.info("定时监控目录完成！")
 
 
@@ -312,7 +309,7 @@ class PathMonitor(_PluginBase):
                     if self.transferhis.get_by_src(str(file_path)):
                         logger.info(f"{file_path} 已整理过")
                         return
-
+                logger.info(f'开始转移{file_path.name}  ...')
                 self.transferchian.do_transfer(
                     fileitem=FileItem(
                         storage="local",
@@ -322,7 +319,8 @@ class PathMonitor(_PluginBase):
                         basename=file_path.stem,
                         extension=file_path.suffix[1:],
                         size=file_path.stat().st_size
-                    )
+                    ),
+                    scrape=True
                 )
 
         except Exception as e:
