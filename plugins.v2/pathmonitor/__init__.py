@@ -235,7 +235,7 @@ class PathMonitor(_PluginBase):
 
     def sync_all_files(self):
         logger.info("开始检测目录 ...")
-        # 遍历所有监控目录
+        # 遍历所有监控目录82
         for mon_path in self._dirconf.keys():
             logger.debug(f"开始处理监控目录 {mon_path} ...")
             list_files = SystemUtils.list_files(Path(mon_path), settings.RMT_MEDIAEXT)
@@ -246,9 +246,9 @@ class PathMonitor(_PluginBase):
             new_file = [f for f in recent_file if f not in transfer_history_list]
             # 遍历目录下所有文件
             for file_path in new_file:
-                logger.info(f"发现新文件 {file_path.resolve()} ...")
+                logger.info(f"发现新文件 {file_path.name} ...")
                 if file_path.stat().st_mtime < (datetime.datetime.now() - datetime.timedelta(minutes=1)).timestamp():
-                    logger.info(f"发现处理文件 {file_path.resolve()} ...")
+                    logger.info(f"发现处理文件 {file_path.name} ...")
                     self.__handle_file(event_path=str(file_path.resolve()))
         logger.info("定时监控目录完成！")
 

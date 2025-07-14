@@ -77,14 +77,14 @@ class Variety(_PluginBase):
     _customize_prompt = '接下来我会给你一个电影或电视剧的文件名，你需要识别文件名中的名称、版本、分段、年份、分瓣率、季集等信息，并按以下JSON格式返回：{"name":string,"version":string,"part":string,"year":string,"resolution":string,"season":number|null,"episode":number|null}，特别注意返回结果需要严格附合JSON格式，不需要有任何其它的字符。如果中文电影或电视剧的文件名中存在谐音字或字母替代的情况，请还原最有可能的结果。'
 
     def init_plugin(self, config: dict = None):
-        self._enabled = True
+        self._enabled = False
         self.downloadHistoryOper = DownloadHistoryOper()
         self.transferHistoryOper = TransferHistoryOper()
         self.subscribe = SubscribeOper()
         self.chain = ChainBase()
         logger.info("插件已加载")
-        # if config:
-        #     self._enabled = config.get("enabled")
+        if config:
+            self._enabled = config.get("enabled")
         #     self.downloadHistoryOper = DownloadHistoryOper()
         # self._proxy = config.get("proxy")
         # self._compatible = config.get("compatible")
